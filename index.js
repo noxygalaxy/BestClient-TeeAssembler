@@ -6,6 +6,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+
+app.use(cookieParser());
+
 // ============================================
 // CONFIGURATION
 // ============================================
@@ -103,46 +108,45 @@ app.get('/api/auth/discord/callback', async (req, res) => {
   const { code } = req.query;
 
   if (!code) {
-    return res.status(400).json({ error: 'No authorization code provided' });
+    return res.redirect('/?error=no_code');
   }
 
   try {
-    // Exchange code for access token
     const tokenData = await exchangeCode(code);
     const { access_token } = tokenData;
 
-    // Get user details
     const user = await getUserDetails(access_token);
-
-    // Check if user has required role
     const hasRole = await checkUserRole(
       access_token,
       CONFIG.GUILD_ID,
       CONFIG.REQUIRED_ROLE_ID
     );
 
-    // Store access_token securely in your database here
-    // For now, we'll just return the result
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
+    // Create JWT token with user info
+    const token = jwt.sign(
+      {
+        userId: user.id,
         username: user.username,
         discriminator: user.discriminator,
-        avatar: user.avatar
+        avatar: user.avatar,
+        hasRequiredRole: hasRole
       },
-      hasRequiredRole: hasRole,
-      message: hasRole 
-        ? 'Access granted - user has required role' 
-        : 'Access denied - user does not have required role'
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    // Set cookie
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
+    res.redirect('/');
   } catch (error) {
     console.error('OAuth callback error:', error.response?.data || error.message);
-    res.status(500).json({ 
-      error: 'Authentication failed',
-      details: error.response?.data || error.message 
-    });
+    res.redirect('/?error=auth_failed');
   }
 });
 
@@ -169,6 +173,39 @@ app.get('/api/auth/check-role', async (req, res) => {
     console.error('Role check error:', error);
     res.status(500).json({ error: 'Failed to check role' });
   }
+});
+
+app.get('/api/auth/status', (req, res) => {
+  const token = req.cookies.auth_token;
+
+  if (!token) {
+    return res.json({ isAuthenticated: false, hasRequiredRole: false, user: null });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    res.json({
+      isAuthenticated: true,
+      hasRequiredRole: decoded.hasRequiredRole,
+      user: {
+        id: decoded.userId,
+        username: decoded.username,
+        discriminator: decoded.discriminator,
+        avatar: decoded.avatar
+      }
+    });
+  } catch (error) {
+    res.json({ isAuthenticated: false, hasRequiredRole: false, user: null });
+  }
+});
+
+// ============================================
+// ADD LOGOUT ROUTE
+// ============================================
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('auth_token');
+  res.json({ success: true });
 });
 
 // ============================================
