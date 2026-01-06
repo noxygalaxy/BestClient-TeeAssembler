@@ -203,6 +203,10 @@ app.get('/api/auth/check-role', async (req, res) => {
 
 // Get auth status from JWT cookie
 app.get('/api/auth/status', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  
   const token = req.cookies.auth_token;
 
   if (!token) {
