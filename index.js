@@ -40,7 +40,7 @@ function getDiscordAuthURL() {
     response_type: 'code',
     scope: scope
   });
-  return `https://discord.com/oauth2/authorize?${params.toString()}`;
+  return `https://discord.com/oauth2/authorize?client_id=1457882637350862900&response_type=code&redirect_uri=https%3A%2F%2Fbest-client-api.vercel.app%2Fapi%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds.members.read`;
 }
 
 // Exchange authorization code for access token
