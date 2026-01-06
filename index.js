@@ -30,7 +30,7 @@ const CONFIG = {
 
 // Build OAuth2 URL for Discord login
 function getDiscordAuthURL() {
-  const scope = ['identify', 'guilds.members.read'].join('%20');
+  const scope = ['identify', 'guilds.members.read'].join('+');
   const params = new URLSearchParams({
     client_id: CONFIG.CLIENT_ID,
     redirect_uri: CONFIG.REDIRECT_URI,
