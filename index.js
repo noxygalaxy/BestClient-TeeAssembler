@@ -21,7 +21,7 @@ const CONFIG = {
   GUILD_ID: '1444352315539591181', // Your server ID
   REQUIRED_ROLE_ID: '1450443703112962171', // Required role ID
   DISCORD_API: 'https://discord.com/api/v10',
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://bestddnet.vercel.app'
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://bestddnet.vercel.app/download'
 };
 
 // ============================================
